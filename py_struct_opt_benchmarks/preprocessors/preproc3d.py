@@ -163,7 +163,21 @@ def preproc3d(n, AR, prob, ratio1, ratio2, hole_r, meshtype, nr0,
                                 ndof += 1
                                 dof[i + j*(nx+1) + nnodes_layer*k, 2] = ndof
                                 ndof += 1
-
+            elif prob == 'RLG':
+                for k in range(nz+1):
+                    for j in range(ny+1):
+                        for i in range(nx+1):
+                            X[i + j*(nx+1) + nnodes_layer*k, 0] = lx*i/nx
+                            X[i + j*(nx+1) + nnodes_layer*k, 1] = ly*j/ny
+                            X[i + j*(nx+1) + nnodes_layer*k, 2] = lz*k/nz
+                            if j < ny or i > (nx+1)*0.3:
+                                dof[i + j*(nx+1) + nnodes_layer*k, 0] = ndof
+                                ndof += 1
+                                dof[i + j*(nx+1) + nnodes_layer*k, 1] = ndof
+                                ndof += 1
+                                dof[i + j*(nx+1) + nnodes_layer*k, 2] = ndof
+                                ndof += 1
+            
             else:
                 for k in range(nz+1):
                     for j in range(ny+1):
@@ -222,6 +236,18 @@ def preproc3d(n, AR, prob, ratio1, ratio2, hole_r, meshtype, nr0,
                     total += 1
             force /= total
 
+        elif prob == 'RLG':
+            nforce = round(nx*forced_portion)
+            if nforce < 2:
+                nforce = 2
+            nzforce = round(nz*loaded_thickness)
+            midk = int(nz/2)
+            nzhalf = int((nzforce-1)/2)
+            for k in range(midk - nzhalf, midk + nzhalf + 1):
+                for j in range(nforce):
+                    force[dof[nx + j*(nx+1) + nnodes_layer*k, 0]] = -force_magnitude
+                    total += 1
+            force /= total
 
         elif prob == 'michell':
             nforce = round(ny*forced_portion)
@@ -280,7 +306,7 @@ def preproc3d(n, AR, prob, ratio1, ratio2, hole_r, meshtype, nr0,
     # Save mesh plot
     if plot_mesh:
         from py_struct_opt_benchmarks.utils import plot_3dmesh
-        plot_3dmesh(prob_pkl, savefig=True, paperstyle=False)
+        plot_3dmesh(prob_pkl, savefig=True, paperstyle=True)
 
     return
 
@@ -294,7 +320,7 @@ if __name__ == '__main__':
     p.add_argument('AR', type=float,
         help='domain aspect ratio, AR = length / height')
     p.add_argument('prob', type=str,
-        choices=['cantilever', 'michell', 'MBB', 'lbracket'])
+        choices=['cantilever', 'michell', 'MBB', 'lbracket', 'RLG'])
     p.add_argument('meshtype', type=str,
         choices=['structured', 'unstructured'])
     p.add_argument('--loaded_thickness', type=float, default=0.5)

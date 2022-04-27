@@ -201,6 +201,26 @@ def preproc(n, AR, prob, meshtype, ratio1, ratio2,
                             ndof += 1
                             dof[i + j*(nx+1), 1] = ndof
                             ndof += 1
+            elif prob == 'RLG':
+                for j in range(round(0.75*ny)): #Enable ground clearance
+                    for i in range(nx+1):
+                        if i >= 0:
+                            dof[i + j*(nx+1), 0] = ndof
+                            ndof += 1
+                            dof[i + j*(nx+1), 1] = ndof
+                            ndof += 1
+                for j in range(round(0.75*ny), ny+1):
+                    for i in range(nx+1):
+                        if i > 0:
+                            dof[i + j*(nx+1), 0] = ndof
+                            ndof += 1
+                            dof[i + j*(nx+1), 1] = ndof
+                            ndof += 1
+
+                for j in range(ny+1):
+                    for i in range(nx+1):
+                        X[i + j*(nx+1), 0] = lx*i/nx
+                        X[i + j*(nx+1), 1] = ly*j/ny
             else:
                 for j in range(ny+1):
                     for i in range(nx+1):
@@ -242,6 +262,18 @@ def preproc(n, AR, prob, meshtype, ratio1, ratio2,
                 nforce = round(ny*forced_portion)
                 for j in range(nforce):
                     force[dof[nx + j*(nx+1), 1]] = -force_magnitude
+                force /= nforce
+        
+        elif prob == 'RLG':
+
+            if use_concentrated_force:
+                force[dof[nx, 1]] = -force_magnitude
+
+            else:
+                nforce = round(nx*forced_portion)
+                j = 0
+                for i in range(nx-nforce, nx+1):
+                    force[dof[i + j*(nx+1), 1]] = force_magnitude
                 force /= nforce
 
         elif prob == 'michell':
@@ -307,7 +339,7 @@ if __name__ == '__main__':
     p.add_argument('AR', type=float,
         help='domain aspect ratio, AR = length / height')
     p.add_argument('prob', type=str,
-        choices=['cantilever', 'michell', 'MBB', 'lbracket'])
+        choices=['cantilever', 'michell', 'MBB', 'lbracket', 'RLG'])
     p.add_argument('meshtype', type=str,
         choices=['structured', 'unstructured'])
     p.add_argument('--ratio1', type=float, default=0.4)
@@ -325,12 +357,12 @@ if __name__ == '__main__':
 
 
     # Set up constants
-    force_magnitude = 25.0  # total force applied to structure
-    forced_portion = 0.2  # portion of the edge of which load is applied to
+    force_magnitude = 13e-4  # total force applied to structure orig 25.0
+    forced_portion = 0.4  # portion of the edge of which load is applied to
     MBB_bc_portion = 0.1  # portion of the right-bottom corner where bc is applied to
     ly = 1.0  # for this project we always set height of domain to be 1.0
     density = 2700.0  # material density
-    E = 70e3  # Young's modulus
+    E = 70e3  # Young's modulus orig 70e3
     nu = 0.3  # Poisson's ratio
 
     # call preproc
